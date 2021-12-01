@@ -2,7 +2,6 @@ package ibm.gse.orderms;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ibm.gse.orderms.domain.model.order.ShippingOrder;
-import ibm.gse.orderms.infra.jms.JMSQueueWriter;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Test;
 

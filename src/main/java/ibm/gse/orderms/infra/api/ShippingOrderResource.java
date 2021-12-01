@@ -15,11 +15,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import ibm.gse.orderms.infra.jms.JMSQueueWriter;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +46,9 @@ public class ShippingOrderResource {
 	@Inject
 	public ShippingOrderService shippingOrderService;
 
-	@Inject
-	private JMSQueueWriter<ShippingOrder> jmsQueueWriter;
+	@Channel("voyage-requests")
+	Emitter<ShippingOrder> voyageRequestEmitter; // <1>
+
 
 	public ShippingOrderResource() {
 	}
@@ -79,14 +81,13 @@ public class ShippingOrderResource {
 		}
 
 		try {
-			jmsQueueWriter.sendMessage(order, String.valueOf(System.getenv("ORDER_MESSAGE_QUEUE")));
+			voyageRequestEmitter.send(order);
 		} catch (Exception e) {
 			logger.error("Error writing message to the " + System.getenv("ORDER_MESSAGE_QUEUE") +
 					" queue. Rolling back.", e);
 			try {
 				//	TODO: ROLLBACK LOGIC TO BE IMPLEMENTED
-				jmsQueueWriter.sendMessage(order,
-						String.valueOf(System.getenv("ORDER_ROLLBACK_MESSAGE_QUEUE")));
+				voyageRequestEmitter.send(order);
 				// shippingOrderService.deleteOrder(order) ??
 			} catch (Exception rollBackException) {
 				logger.error("Could not rollback...", rollBackException);
